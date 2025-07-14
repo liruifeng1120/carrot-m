@@ -32,13 +32,14 @@ def get_default_params():
     ("OpenpilotEnabledToggle", "1"),
     ("LongitudinalPersonality", str(log.LongitudinalPersonality.standard)),
     ("IsMetric", "1"),
+    ("RecordAudio", "1"),
 
     ("SearchInput", "0"),
     ("GMapKey", "0"),
-    ("MapboxStyle", "0"),    
+    ("MapboxStyle", "0"),
 
 
-    ("LongitudinalPersonalityMax", "3"),
+    ("LongitudinalPersonalityMax", "4"),
     ("ShowDebugUI", "0"),
     ("ShowTpms", "1"),
     ("ShowDateTime", "1"),
@@ -59,6 +60,7 @@ def get_default_params():
     ("CruiseEcoControl", "2"),
     ("CarrotCruiseDecel", "-1"),
     ("CarrotCruiseAtcDecel", "-1"),
+    ("CommaLongAcc", "0"),
     ("AutoGasTokSpeed", "0"),
     ("AutoGasSyncSpeed", "1"),
     ("AutoEngage", "0"),
@@ -147,13 +149,13 @@ def get_default_params():
     ("LateralTorqueKiV", "10"),
     ("LateralTorqueKf", "100"),
     ("LateralTorqueKd", "0"),
-    ("LatMpcPathCost", "100"),
-    ("LatMpcMotionCost", "11"),
-    ("LatMpcAccelCost", "0"),
+    ("LatMpcPathCost", "200"),
+    ("LatMpcMotionCost", "7"),
+    ("LatMpcAccelCost", "120"),
     ("LatMpcJerkCost", "4"),
-    ("LatMpcSteeringRateCost", "700"),
-    ("LatMpcInputOffset", "6"),
-    ("LatMpcOutputOffset", "5"),
+    ("LatMpcSteeringRateCost", "7"),
+    ("LatMpcInputOffset", "4"),
+    ("LatMpcOutputOffset", "0"),
     ("CustomSteerMax", "0"),
     ("CustomSteerDeltaUp", "0"),
     ("CustomSteerDeltaDown", "0"),
@@ -173,6 +175,8 @@ def get_default_params():
     ("SoftwareMenu", "1"),
     ("CustomSR", "0"),
     ("SteerRatioRate", "100"),
+    ("NNFF", "0"),
+    ("NNFFLite", "0"),
   ]
   return default_params
 
@@ -346,11 +350,19 @@ def manager_thread() -> None:
 
 def main() -> None:
   manager_init()
-  print(f"python ../../opendbc/car/hyundai/values.py > {Params().get_param_path()}/SupportedCars")
-  os.system(f"python ../../opendbc/car/hyundai/values.py > {Params().get_param_path()}/SupportedCars")
-  os.system(f"python ../../opendbc/car/gm/values.py > {Params().get_param_path()}/SupportedCars_gm")
-  os.system(f"python ../../opendbc/car/toyota/values.py > {Params().get_param_path()}/SupportedCars_toyota")
-  os.system(f"python ../../opendbc/car/mazda/values.py > {Params().get_param_path()}/SupportedCars_mazda")
+  os.system(f"python ./opendbc/car/hyundai/values.py > {Params().get_param_path()}/SupportedCars")
+  os.system(f"python ./opendbc/car/gm/values.py > {Params().get_param_path()}/SupportedCars_gm")
+  os.system(f"python ./opendbc/car/toyota/values.py > {Params().get_param_path()}/SupportedCars_toyota")
+  os.system(f"python ./opendbc/car/mazda/values.py > {Params().get_param_path()}/SupportedCars_mazda")
+  os.system(f"python ./opendbc/car/honda/values.py > {Params().get_param_path()}/SupportedCars_honda")
+  os.system(f"python ./opendbc/car/byd/values.py > {Params().get_param_path()}/SupportedCars_byd")
+  os.system(f"python ./opendbc/car/rivian/values.py > {Params().get_param_path()}/SupportedCars_rivian")
+  os.system(f"python ./opendbc/car/subaru/values.py > {Params().get_param_path()}/SupportedCars_subaru")
+  os.system(f"python ./opendbc/car/ford/values.py > {Params().get_param_path()}/SupportedCars_ford")
+  os.system(f"python ./opendbc/car/nissan/values.py > {Params().get_param_path()}/SupportedCars_nissan")
+  os.system(f"python ./opendbc/car/tesla/values.py > {Params().get_param_path()}/SupportedCars_tesla")
+  os.system(f"python ./opendbc/car/chrysler/values.py > {Params().get_param_path()}/SupportedCars_chrysler")
+  os.system(f"python ./opendbc/car/volkswagen/values.py > {Params().get_param_path()}/SupportedCars_volkswagen")
 
   if os.getenv("PREPAREONLY") is not None:
     return
