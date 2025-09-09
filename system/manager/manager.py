@@ -195,8 +195,7 @@ def manager_init() -> None:
     ("AutoCurveSpeedAggressivenessH", "120"),
     ("NewLaneWidthDiff", "8"),
     # new
-    ("AutoCurveSpeedFactor", "100"),
-    ("AutoCurveSpeedAggressiveness", "100"),
+
   ]
   if not PC:
     default_params.append(("LastUpdateTime", datetime.datetime.utcnow().isoformat().encode('utf8')))
