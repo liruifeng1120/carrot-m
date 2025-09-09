@@ -14,7 +14,7 @@ from datetime import datetime
 from ftplib import FTP
 from cereal import log
 import cereal.messaging as messaging
-from openpilot.common.realtime import Ratekeeper
+from openpilot.common.realtime import Ratekeeper, DT_MDL
 from openpilot.common.params import Params
 from openpilot.common.filter_simple import MyMovingAverage
 from openpilot.system.hardware import PC, TICI
@@ -254,6 +254,15 @@ class CarrotMan:
     self.ip_address = "0.0.0.0"
     self.remote_addr = None
 
+    #new
+    self.autoCurveSpeedFactor = 1.0
+    self.autoCurveSpeedAggressiveness = 1.0
+    self.autoCurveSpeedFactorH = 0.8
+    self.autoCurveSpeedAggressivenessH = 1.2
+    self.param_frame = 0
+    self.xroadcate = -1
+    #new
+
     self.turn_speed_last = 250
     self.curvatureFilter = MyMovingAverage(20)
     ##self.carrot_curve_speed_params()
@@ -319,11 +328,11 @@ class CarrotMan:
     while self.is_running:
       try:
         self.sm.update(0)
-        ##if self.sm.updated['navRouteNavd']:
+        ##if self.sm.updated['navRouteNavd']: #MapBox用的
         ##  self.send_routes(self.sm['navRouteNavd'].coordinates, True)
         remote_addr = self.remote_addr
         remote_ip = remote_addr[0] if remote_addr is not None else ""
-        ##vturn_speed = self.carrot_curve_speed(self.sm)
+        vturn_speed = self.carrot_curve_speed(self.sm)
         ##coords, distances, route_speed = self.carrot_navi_route()
 
         #print("coords=", coords)
@@ -415,6 +424,58 @@ class CarrotMan:
     return json.dumps(msg)
 
 
+
+  def carrot_curve_speed_params(self):
+    self.autoCurveSpeedFactor = self.params.get_int("AutoCurveSpeedFactor")*0.01
+    self.autoCurveSpeedAggressiveness = self.params.get_int("AutoCurveSpeedAggressiveness")*0.01
+    self.autoCurveSpeedFactorH = self.params.get_int("AutoCurveSpeedFactorH") * 0.01
+    self.autoCurveSpeedAggressivenessH = self.params.get_int("AutoCurveSpeedAggressivenessH") * 0.01
+
+  def carrot_curve_speed(self, sm):
+    self.carrot_curve_speed_params()
+    if not sm.alive['carState'] and not sm.alive['modelV2']:
+        return 250
+    #print(len(sm['modelV2'].orientationRate.z))
+    if len(sm['modelV2'].orientationRate.z) == 0:
+        return 250
+
+    return self.vturn_speed(sm['carState'], sm)
+
+  def vturn_speed(self, CS, sm):
+    TARGET_LAT_A = 1.9  # m/s^2
+
+    modelData = sm['modelV2']
+    v_ego = max(CS.vEgo, 0.1)
+    # Set the curve sensitivity
+    #new
+    if self.xroadcate > 1: #if self.carrot_serv.xroadcate > 1: #普通道路
+      orientation_rate = np.array(modelData.orientationRate.z) * self.autoCurveSpeedFactor
+    else: #高速公路
+      orientation_rate = np.array(modelData.orientationRate.z) * self.autoCurveSpeedFactorH
+    #new
+    velocity = np.array(modelData.velocity.x)
+
+    # Get the maximum lat accel from the model
+    max_index = np.argmax(np.abs(orientation_rate))
+    curv_direction = np.sign(orientation_rate[max_index])
+    max_pred_lat_acc = np.amax(np.abs(orientation_rate) * velocity)
+
+    # Get the maximum curve based on the current velocity
+    max_curve = max_pred_lat_acc / (v_ego**2)
+
+    # Set the target lateral acceleration
+    #new
+    if self.xroadcate > 1: #if self.carrot_serv.xroadcate > 1: #普通道路
+      adjusted_target_lat_a = TARGET_LAT_A * self.autoCurveSpeedAggressiveness
+    else: #高速公路
+      adjusted_target_lat_a = TARGET_LAT_A * self.autoCurveSpeedAggressivenessH
+    #new
+
+    # Get the target velocity for the maximum curve
+    #turnSpeed = max(abs(adjusted_target_lat_a / max_curve)**0.5  * 3.6, self.autoCurveSpeedLowerLimit)
+    turnSpeed = max(abs(adjusted_target_lat_a / max_curve)**0.5  * 3.6, 5)
+    turnSpeed = min(turnSpeed, 250)
+    return turnSpeed * curv_direction
 
 
 import traceback
