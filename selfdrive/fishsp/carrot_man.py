@@ -19,7 +19,7 @@ from openpilot.common.params import Params
 from openpilot.common.filter_simple import MyMovingAverage
 from openpilot.system.hardware import PC, TICI
 from openpilot.selfdrive.navd.helpers import Coordinate
-from opendbc.car.common.conversions import Conversions as CV
+from openpilot.common.conversions import Conversions as CV
 
 try:
   from shapely.geometry import LineString
