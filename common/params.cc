@@ -429,6 +429,7 @@ std::unordered_map<std::string, uint32_t> keys = {
     {"AutoCurveSpeedAggressivenessH",  PERSISTENT | BACKUP},
     {"NewLaneWidthDiff",  PERSISTENT | BACKUP},
     //new
+
     {"NetworkAddress", CLEAR_ON_MANAGER_START},
     {"AutoCurveSpeedFactor", PERSISTENT | BACKUP},
     {"AutoCurveSpeedAggressiveness", PERSISTENT | BACKUP},
