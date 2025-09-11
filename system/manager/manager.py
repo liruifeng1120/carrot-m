@@ -259,8 +259,13 @@ def manager_init() -> None:
 
   # set unset params
   for k, v in default_params:
-    if params.get(k) is None:
-      params.put(k, v)
+    try:
+      if params.get(k) is None:
+        params.put(k, v)
+    except Exception:
+      # If parameter key is invalid, skip it
+      print(f"Skipping invalid parameter: {k}")
+      pass
 
   # Create folders needed for msgq
   try:

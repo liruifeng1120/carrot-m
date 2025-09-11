@@ -972,7 +972,7 @@ class CarrotMan:
 
     # Set the target lateral acceleration
     #new
-    if self.carrot_serv.xroadcate > 1: #普通道路
+    if self.carrot_serv.xroadcate > 1: #普通도로
       adjusted_target_lat_a = TARGET_LAT_A * self.autoCurveSpeedAggressiveness
     else: #高速公路
       adjusted_target_lat_a = TARGET_LAT_A * self.autoCurveSpeedAggressivenessH
@@ -1079,7 +1079,7 @@ class CarrotServ:
     self.xDistToTurn = 0
     self.xDistToTurnNav = 0
     self.xDistToTurnMax = 0
-    self.xDistToTurnMaxCnt = 0 #最大转弯引导距离的次数
+    self.xDistToTurnMaxCnt = 0 #최대转弯引导距离의 횟수
     self.xDistToTurnNavLast = 0
     self.xTurnInfoNext = -1
     self.xDistToTurnNext = 0
@@ -1209,7 +1209,10 @@ class CarrotServ:
       self.autoForkDecalRate = float(self.params.get_int("AutoForkDecalRate")) * 0.01
       self.autoForkSpeedMin = self.params.get_int("AutoForkSpeedMin")
       self.autoKeepForkSpeed = self.params.get_int("AutoKeepForkSpeed")
-      self.showDebugLog = self.params.get_int("ShowDebugLog")
+      try:
+        self.showDebugLog = self.params.get_int("ShowDebugLog")
+      except Exception:
+        self.showDebugLog = 0
 
     self.param_frame += 1
     #new
