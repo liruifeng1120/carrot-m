@@ -82,6 +82,15 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   // set up uiState update for personality setting
   QObject::connect(uiState(), &UIState::uiUpdate, this, &TogglesPanel::updateState);
+  // 新增：传感器融合模式选择
+  std::vector<QString> fusion_modes{tr("Visual Priority"), tr("Radar Priority"), tr("Auto Fusion")};
+  auto fusion_mode_control = new ButtonParamControl(
+      "SensorFusionMode",
+      tr("Sensor Fusion Mode"),
+      tr("Choose which sensor data to prioritize when detecting obstacles."),
+      "../assets/offroad/icon_sensor.svg",
+      fusion_modes
+  );
 
   for (auto &[param, title, desc, icon] : toggle_defs) {
     auto toggle = new ParamControl(param, title, desc, icon, this);
@@ -91,6 +100,11 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
     addItem(toggle);
     toggles[param.toStdString()] = toggle;
+
+    // 在 IsLdwEnabled 后插入融合模式控制
+    if (param == "IsLdwEnabled") {
+        addItem(fusion_mode_control);
+    }
 
     // insert longitudinal personality after NDOG toggle
     if (param == "DisengageOnAccelerator") {

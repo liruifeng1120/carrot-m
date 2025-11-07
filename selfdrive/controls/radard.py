@@ -43,7 +43,7 @@ class Track:
     self.vLead = self.vLeadK = v_lead
     self.aLead = self.aLeadK = a_lead
     self.jLead = j_lead
-    
+
     self.measured = measured   # measured or estimate
     a_lead_threshold = 0.5 * self.radar_reaction_factor
     if abs(self.aLead) < a_lead_threshold and abs(j_lead) < 0.5:
@@ -93,7 +93,7 @@ def laplacian_pdf(x: float, mu: float, b: float):
 def match_vision_to_track(v_ego: float, lead: capnp._DynamicStructReader, tracks: dict[int, Track]):
   offset_vision_dist = lead.x[0] - RADAR_TO_CAMERA
   vel_tolerance = 25.0 if lead.prob > 0.99 else 10.0
-  max_offset_vision_dist = max(offset_vision_dist * 0.35, 5.0)    
+  max_offset_vision_dist = max(offset_vision_dist * 0.35, 5.0)
 
   def prob(c):
     if abs(c.dRel - offset_vision_dist) > max_offset_vision_dist:
@@ -367,6 +367,9 @@ class RadarD:
     self.enable_radar_tracks = self.params.get_int("EnableRadarTracks")
     self.enable_corner_radar = self.params.get_int("EnableCornerRadar")
 
+    # fusion mode: 0=Visual Priority, 1=Radar Priority (Radar-only), 2=Auto Fusion
+    self.fusion_mode = self.params.get_int("SensorFusionMode")
+
     self.radar_detected = False
 
 
@@ -376,6 +379,8 @@ class RadarD:
 
     self.enable_radar_tracks = self.params.get_int("EnableRadarTracks")
     self.enable_corner_radar = self.params.get_int("EnableCornerRadar")
+    # refresh fusion mode each update so UI changes take effect immediately
+    self.fusion_mode = self.params.get_int("SensorFusionMode")
 
 
     leads_v3 = sm['modelV2'].leadsV3
@@ -470,10 +475,25 @@ class RadarD:
     #  del tracks[0]            ## tracks에서 삭제하면안됨... ㅠㅠ
 
     # Determine leads, this is where the essential logic happens
-    if len(tracks) > 0 and ready and lead_msg.prob > .5:
-      track = match_vision_to_track(v_ego, lead_msg, tracks)
-    else:
+    # fusion_mode: 0=Visual Priority (vision-only), 1=Radar Priority (radar-only), 2=Auto Fusion (default)
+    fusion = getattr(self, 'fusion_mode', 2)
+
+    if fusion == 1:
+      # Radar-only: choose the closest radar track if available, do not use vision leads
+      if len(tracks) > 0 and ready:
+        # choose the closest radar track by distance
+        track = min(tracks.values(), key=lambda c: c.dRel)
+      else:
+        track = None
+    elif fusion == 0:
+      # Visual-only: do not consider radar tracks
       track = None
+    else:
+      # Auto fusion (existing behavior): try to match vision to radar tracks
+      if len(tracks) > 0 and ready and lead_msg.prob > .5:
+        track = match_vision_to_track(v_ego, lead_msg, tracks)
+      else:
+        track = None
 
     # vision match후 발견된 track이 없으면
     #  track_scc 가 있는 지 확인하고
@@ -481,12 +501,9 @@ class RadarD:
 
     ### 240807, SCC레이더가 옆차선의것을 많이 가져옴... 사용하지 말아야겠다...
     # 250415: scc radar정보가 있지만.. vision 미검출시, 오류
-    if self.enable_radar_tracks in [-1, 2]:  
+    if self.enable_radar_tracks in [-1, 2]:
       if track_scc is not None and track is None:
         track = track_scc
-    #  if self.vision_tracks[index].prob > .5:
-    #    if self.vision_tracks[index].dRel < track.dRel - 10.0: #끼어드는 차량이 있는 경우 처리..  5-> 10M바꿔보자... 240427
-    #      track = None
 
     lead_dict = {'status': False}
     radar = False
@@ -495,10 +512,12 @@ class RadarD:
       lead_dict = track.get_RadarState(md, lead_msg.prob, self.vision_tracks[0].yRel)
       radar = True
     elif (track is None) and ready and (lead_msg.prob > .8):
-      #if self.mixRadarInfo == 4 and v_ego * 3.6 > 30 and lead_msg.prob < 0.99: ##
-      #  pass
-      #else:
+      # only use vision if fusion allows it
+      if fusion != 1:
         lead_dict = self.vision_tracks[index].get_lead(md)
+      else:
+        # radar-only and no radar track: keep status=False
+        pass
 
     if self.enable_corner_radar > 0:
       lead_dict = self.corner_radar(CS, lead_dict)
@@ -514,7 +533,7 @@ class RadarD:
           lead_dict = closest_track.get_RadarState(md, lead_msg.prob, self.vision_tracks[0].yRel)
 
     return lead_dict, radar
-  
+
   def corner_radar(self, CS, lead_dict):
     lat_dist = 1e6
     long_dist = 1e6
@@ -527,7 +546,7 @@ class RadarD:
 
     if lat_dist == 0.0 or lat_dist >= 2.5 or long_dist == 1e6:
       return lead_dict
-    
+
     if lead_dict['status']:
       if lead_dict['dRel'] > long_dist:
         lead_dict['dRel'] = long_dist
