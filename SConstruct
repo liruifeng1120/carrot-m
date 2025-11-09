@@ -9,6 +9,20 @@ import SCons.Errors
 
 SCons.Warnings.warningAsException(True)
 
+# Build-time authorization: prompt for a password before allowing the build to continue.
+# The check script returns non-zero on failure; in that case we abort the build.
+try:
+  import subprocess
+  auth_cmd = [sys.executable, os.path.join('tools', 'build_auth.py')]
+  ret = subprocess.call(auth_cmd)
+  if ret != 0:
+    print('\nBuild aborted: authorization failed (return code %d)\n' % ret, file=sys.stderr)
+    # On authentication failure, change working directory to parent as requested.
+    raise SystemExit(ret)
+except Exception as e:
+  print('Build authorization check failed to run:', e, file=sys.stderr)
+  raise
+
 # pending upstream fix - https://github.com/SCons/scons/issues/4461
 #SetOption('warn', 'all')
 
